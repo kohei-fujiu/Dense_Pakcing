@@ -20,3 +20,13 @@ This is the code running the simulations described in "Dense packing of the surf
 
 The simulations were executed in the above environment.
 Although the code may work with other versions of Pythons or these libraries, compatibility has not been tested.
+
+## How to run
+
+```bash
+# Logical Z error rate
+python3 dense_packing_simulation_z_error.py
+
+# logical X error rate
+python3 dense_packing_simulation_x_error.py
+```
