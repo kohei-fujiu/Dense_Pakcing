@@ -5,6 +5,7 @@ This is the code running the simulations described in "Dense packing of the surf
 ## Environment
 
 -Python 3.11.6
+
 -stim 1.15.0
 -sinter 1.15.0
 -pymatching 2.3.0
