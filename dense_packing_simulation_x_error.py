@@ -1,4 +1,4 @@
-# %%
+
 import stim
 import matplotlib.pyplot as plt
 import sinter 
@@ -7,11 +7,16 @@ import numpy as np
 import pymatching
 import scipy.stats
 from matplotlib.lines import Line2D
+import os
+import argparse
 
 
-# %%
+parser = argparse.ArgumentParser()
+arg_choices = ["leftmost", "second_from_the_left", "center", "second_from_the_right", "rightmost"]
+parser.add_argument("--mode", choices=arg_choices, required=True)
+args = parser.parse_args()
 
-def num_to_coordinate_one(i: int, distance: int)->tuple():
+def num_to_coordinate_one(i: int, distance: int)->tuple:
     offset = distance*2 + 2
     x = i%offset
     y = i//offset
@@ -29,7 +34,7 @@ def auxiliary_z_one(i: int, distance: int)->bool:
     x,y = num_to_coordinate_one(i, distance)
     return (x+y)%4 == 2
 
-def append_gate_and_error_one(circuit: stim.Circuit(),gate: str, target_list:list(), num_list: list(), noise: float)->stim.Circuit():
+def append_gate_and_error_one(circuit: stim.Circuit,gate: str, target_list:list, num_list: list, noise: float)->stim.Circuit:
     circuit.append(gate, target_list)
     
     #p = noise/10
@@ -52,7 +57,7 @@ def append_gate_and_error_one(circuit: stim.Circuit(),gate: str, target_list:lis
     return circuit
 
 
-def measure_and_error_one(circuit: stim.Circuit(), target_list: list(), num_list: list(), noise: float)->stim.Circuit():
+def measure_and_error_one(circuit: stim.Circuit, target_list: list, num_list: list, noise: float)->stim.Circuit:
     measure = "MZ(" + str(noise)+")"
     for target in target_list:
         measure = measure + " "+str(target)
@@ -92,7 +97,7 @@ def two_patches_num_one(i: int, distance: int)->bool:
     else :
         return False
     
-def make_repeat_body_one(distance: int, noise: float, qubit_num_list, data_num_list, auxiliary_num_list, auxiliary_z_list, auxiliary_x_list)->stim.Circuit():
+def make_repeat_body_one(distance: int, noise: float, qubit_num_list, data_num_list, auxiliary_num_list, auxiliary_z_list, auxiliary_x_list)->stim.Circuit:
     offset = distance*2+2
     circuit = stim.Circuit()
     #circuit.append("TICK")
@@ -129,7 +134,7 @@ def make_repeat_body_one(distance: int, noise: float, qubit_num_list, data_num_l
     return circuit
 
 
-def make_one_surface_x_error(distance: int, rounds: int, noise: float)->stim.Circuit():
+def make_one_surface_x_error(distance: int, rounds: int, noise: float)->stim.Circuit:
     offset = distance*2+2
     circuit = stim.Circuit()
     max_num = offset*(distance*2+1)
@@ -249,7 +254,7 @@ def auxiliary_z(i: int, distance: int)->bool:
     return (x+y)%4 == 2
     
 
-def append_gate_and_error(circuit: stim.Circuit(),gate: str, target_list:list(), num_list: list(), noise: float)->stim.Circuit():
+def append_gate_and_error(circuit: stim.Circuit,gate: str, target_list:list, num_list: list, noise: float)->stim.Circuit:
     circuit.append(gate, target_list)
     
     #p = noise/10
@@ -272,7 +277,7 @@ def append_gate_and_error(circuit: stim.Circuit(),gate: str, target_list:list(),
     return circuit
 
 
-def measure_and_error(circuit: stim.Circuit(), target_list: list(), num_list: list(), noise: float)->stim.Circuit():
+def measure_and_error(circuit: stim.Circuit, target_list: list, num_list: list, noise: float)->stim.Circuit:
     measure = "MZ(" + str(noise)+")"
     for target in target_list:
         measure = measure + " "+str(target)
@@ -303,29 +308,28 @@ def five_dense_num(i: int, distance: int)->bool:
         return (x+y)%4 == 2
     else:
         return False
-    
+
 def determine_schedule(i: int, distance: int)->int:
     x,y = num_to_coordinate(i, distance)
-    result = 0
-    num = x+y
-    if ((num==distance*4-4 and distance<x and x<distance*2+1)
-        or (num==distance*4-2 and distance<x and x<distance*2+3)
-        or (num==distance*6-2 and distance*3+2<x and x<distance*4+3)
-        or (num==distance*6 and distance*3+2<x and x<distance*4+5)):
-        result += 2
+    A = 0
+    B = 1
+    C = 2
+    D = 3
+    schedule = A
+
+    if ((x+y >= distance*5+3) and (y-x >= -distance*3-3)) or ((x+y >= distance*3+1) and (y-x >= -distance-1)):
+        schedule = C
         if not auxiliary_z(i, distance):
-            result += 1
-    elif ((y>-x+distance*4-2 and y>x-(distance+3)) or (y>-x+distance*6 and y>x-(distance*3+5))):
-        if auxiliary_z(i, distance):
-            result += 1
+            schedule = D
     else:
+        schedule = A
         if not auxiliary_z(i, distance):
-            result += 1
+            schedule = B
     
-    return result
+    return schedule
     
 
-def make_repeat_body(distance: int, noise: float, qubit_num_list, data_num_list, auxiliary_num_list, auxiliary_z_list, auxiliary_x_list)->stim.Circuit():
+def make_repeat_body(distance: int, noise: float, qubit_num_list, data_num_list, auxiliary_num_list, auxiliary_z_list, auxiliary_x_list)->stim.Circuit:
     circuit = stim.Circuit()
 
     #circuit.append("TICK")
@@ -371,7 +375,7 @@ def make_repeat_body(distance: int, noise: float, qubit_num_list, data_num_list,
     return circuit
     
     
-def make_five_dense_x_error(distance: int, rounds: int, noise: float)->stim.Circuit():
+def make_five_dense_x_error(distance: int, rounds: int, noise: float)->stim.Circuit:
     #論理｜０＞状態を作成して、論理Xエラーが発生する確率をみている。
     circuit = stim.Circuit()
     offset = distance*6+5
@@ -463,15 +467,30 @@ def make_five_dense_x_error(distance: int, rounds: int, noise: float)->stim.Circ
     observable = []
     for i in range(1, len(data_num_list)+1):
         x,y = num_to_coordinate(data_num_list[-i], distance)
-        if x==distance*3+2:
-            observable.append(stim.target_rec(-i))
+        if args.mode == "leftmost":
+            if x==distance: 
+                observable.append(stim.target_rec(-i))
+        elif args.mode == "second_from_the_left":
+            if y==distance*2+1 and (distance+2 <= x and x<=distance*3):
+                observable.append(stim.target_rec(-i))
+        elif args.mode == "center":
+            if x==distance*3+2:
+                observable.append(stim.target_rec(-i))
+        elif args.mode == "second_from_the_right":
+            if y==distance*2+1 and (distance*3+4 <= x and x<=distance*5+2): #変更点
+                observable.append(stim.target_rec(-i))
+        elif args.mode == "rightmost":
+            if x==distance*5+4: 
+                observable.append(stim.target_rec(-i))
+        # if x==distance*3+2:
+        #     observable.append(stim.target_rec(-i))
     circuit.append("OBSERVABLE_INCLUDE", observable, [0])
 
     return circuit
 
 # %%
 
-def make_repeat_body_with_hook_error(distance: int, noise: float, qubit_num_list, data_num_list, auxiliary_num_list, auxiliary_z_list, auxiliary_x_list)->stim.Circuit():
+def make_repeat_body_with_hook_error(distance: int, noise: float, qubit_num_list, data_num_list, auxiliary_num_list, auxiliary_z_list, auxiliary_x_list)->stim.Circuit:
     offset = distance*6+5
     circuit = stim.Circuit()
 
@@ -515,7 +534,7 @@ def make_repeat_body_with_hook_error(distance: int, noise: float, qubit_num_list
     
     
 
-def make_five_dense_x_error_with_hook_error(distance: int, rounds: int, noise: float)->stim.Circuit():
+def make_five_dense_x_error_with_hook_error(distance: int, rounds: int, noise: float)->stim.Circuit:
     circuit = stim.Circuit()
     offset = distance*6+5
     max_num = offset*distance*3
@@ -601,15 +620,40 @@ def make_five_dense_x_error_with_hook_error(distance: int, rounds: int, noise: f
     observable = []
     for i in range(1, len(data_num_list)+1):
         x,y = num_to_coordinate(data_num_list[-i], distance)
-        if x==distance*3+2:
-            observable.append(stim.target_rec(-i))
+        if args.mode == "leftmost":
+            if x==distance: 
+                observable.append(stim.target_rec(-i))
+        elif args.mode == "second_from_the_left":
+            if y==distance*2+1 and (distance+2 <= x and x<=distance*3):
+                observable.append(stim.target_rec(-i))
+        elif args.mode == "center":
+            if x==distance*3+2:
+                observable.append(stim.target_rec(-i))
+        elif args.mode == "second_from_the_right":
+            if y==distance*2+1 and (distance*3+4 <= x and x<=distance*5+2): #変更点
+                observable.append(stim.target_rec(-i))
+        elif args.mode == "rightmost":
+            if x==distance*5+4: 
+                observable.append(stim.target_rec(-i))
+        # if x==distance*3+2:
+        #     observable.append(stim.target_rec(-i))
     circuit.append("OBSERVABLE_INCLUDE", observable, [0])
 
     return circuit
 
 # %%
-
 def main():
+    if args.mode == "leftmost":
+        print("Leftmost logical X error rate")
+    elif args.mode == "second_from_the_left":
+        print("Second from the left logical X error rate")
+    elif args.mode == "center":
+        print("Central logical X error rate")
+    elif args.mode == "second_from_the_right":
+        print("Second from the right logical X error rate")
+    elif args.mode == "rightmost":
+        print("Rightmost logical X error rate")
+
     one_surface_tasks = [
         sinter.Task(
             circuit = make_one_surface_x_error(distance=d, rounds = d*3, noise = noise),
@@ -640,16 +684,13 @@ def main():
     all_tasks = one_surface_tasks + dense_surface_tasks + dense_surface_tasks_b
 
     collected_surface_code_stats: List[sinter.TaskStats] = sinter.collect(
-        num_workers=4,
+        num_workers=os.cpu_count(),
         tasks=all_tasks,
         decoders=['pymatching'],
         max_shots=100000000,
         max_errors=10000,
         print_progress=True,
     )
-
-# %%
-
 
     color_by_distance = {
         5: "tab:blue",
@@ -717,13 +758,11 @@ def main():
     ax.legend(handles=legend_elements, loc="lower right", fontsize=8, title="Legend")
     fig.set_dpi(120)
     plt.tight_layout()
-    plt.savefig("dense_packing_simulation_x_error.pdf")
+    plt.savefig("one_vs_dense_x_error(a)_vs_(b)10.pdf")
     plt.show()
 
 
-# %%
-if __name__ ==  "__main__":
+if __name__ == "__main__":
     main()
-
 
 
