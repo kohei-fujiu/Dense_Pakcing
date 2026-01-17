@@ -23,10 +23,25 @@ Although the code may work with other versions of Pythons or these libraries, co
 
 ## How to run
 
-```bash
-# Logical Z error rate
-python3 dense_packing_simulation_z_error.py
+This repository provides code to evaluate the logical error rates of individual logical qubits in a densely packed surface code composed of five logical qubits.
 
-# logical X error rate
-python3 dense_packing_simulation_x_error.py
+Each logical qubit is specified by its position within the dense packing. The available options are:
+
+- leftmost
+- second_from_the_left
+- center
+- second_from_the_right
+- rightmost
+
+To evaluate the logical error rate of a specific logical qubit, specify its position using the `--mode` argument. For example, to evaluate the leftmost logical Z error rate, run:
+
+```bash
+python3 dense_packing_simulation_z_error.py --mode leftmost
 ```
+To evaluate center logica X error rate, run:
+```bash
+python3 dense_packing_simulation_x_error.py --mode center
+```
+
+
+
